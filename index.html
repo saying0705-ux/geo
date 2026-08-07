@@ -157,24 +157,16 @@ table.dt .n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align
 .trackcard b{display:block;font-size:14.5px;margin-bottom:4px}
 .trackcard span{font-size:11.5px;color:var(--ink2);line-height:1.4}
 .trackcard u{display:block;margin-top:8px;font-family:var(--mono);font-size:10px;text-decoration:none;color:var(--ink3)}
+.arc-item{border:1px solid var(--rule);border-top:0;padding:13px 15px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.arc-item:first-child{border-top:1px solid var(--rule)}
+.arc-item .meta{flex:1;min-width:220px}
+.arc-item .meta b{font-size:13.5px;display:block;margin-bottom:2px}
+.arc-item .meta span{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.arc-empty{border:1px solid var(--rule);padding:24px;text-align:center;color:var(--ink3);font-size:12.5px}
 </style>
 
-<!-- ═════════════ GATE ═════════════ -->
-<div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="brand"><b>NE</b><span>GEO 진단</span></div>
-    <p class="sm muted">디지털마케팅팀에서 발급한 접속 암호를 입력하십시오.</p>
-    <label class="fl" style="margin-top:14px">접속 암호</label>
-    <input type="password" id="gateCode" autocomplete="off">
-    <div class="row" style="margin-top:12px">
-      <button class="btn btn-p btn-lg" id="gateBtn" style="flex:1">입장</button>
-    </div>
-    <p class="xs muted" id="gateMsg" style="margin-top:10px"></p>
-  </div>
-</div>
-
-<!-- ═════════════ TRACK SELECT ═════════════ -->
-<div class="gate hide" id="trackGate">
+<!-- ═════════════ TRACK SELECT (최초 화면 · 로그인 없음) ═════════════ -->
+<div class="gate" id="trackGate">
   <div class="gate-card" style="max-width:640px">
     <div class="brand"><b>NE</b><span>GEO 진단</span></div>
     <p class="sm muted">담당 트랙을 선택하십시오. 트랙당 소요 시간은 15~25분입니다.</p>
@@ -208,6 +200,7 @@ table.dt .n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align
     <button class="step" data-p="2"><span class="step-n">2</span><span class="step-t">실측</span><span class="step-s">캡처 워크벤치</span></button>
     <button class="step" data-p="3"><span class="step-n">3</span><span class="step-t">진단</span><span class="step-s">판정 확인</span></button>
     <button class="step" data-p="4"><span class="step-n">4</span><span class="step-t">보고서</span><span class="step-s">출력 · 인쇄 · 메일</span></button>
+    <button class="step" data-p="5"><span class="step-n">5</span><span class="step-t">기록</span><span class="step-s">저장된 보고서 보관함</span></button>
     <div class="railfoot"><div class="nextup"><span class="eb">지금 할 일</span><p id="nextUp">—</p></div></div>
   </nav>
 
@@ -331,13 +324,31 @@ table.dt .n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align
 
   <section id="p4" class="hide">
     <div class="toolbar no-print">
-      <button class="btn btn-p" id="btnPrint">인쇄 / PDF 저장</button>
+      <button class="btn btn-p" id="btnSaveReport">보고서 저장 (기록에 남기기)</button>
+      <button class="btn" id="btnPrint">인쇄 / PDF 저장</button>
       <button class="btn" id="btnHtml">HTML 복사 (메일)</button>
       <button class="btn" id="btnTxt">텍스트 복사</button>
       <button class="btn" id="btnCsv">원자료 CSV</button>
       <button class="btn" id="btnRe">다시 생성</button>
+      <span class="muted xs" id="saveMsg"></span>
     </div>
     <div class="sheet-wrap"><article class="sheet" id="sheet"></article></div>
+  </section>
+
+  <section id="p5" class="hide">
+    <div class="pane-h"><span class="eb">Step 05</span><h2>저장된 보고서 보관함</h2>
+      <p class="muted sm">Step 4에서 「보고서 저장」을 누른 기록입니다. 이 브라우저에만 남으며, 다른 기기에는 동기화되지 않습니다.</p></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <span class="muted sm" id="archiveCount">저장된 보고서 0건</span>
+        <div class="row">
+          <button class="btn btn-sm" id="btnExportArchive">전체 보관함 내보내기</button>
+          <button class="btn btn-sm" id="btnImportArchive">가져오기</button>
+        </div>
+      </div>
+      <input type="file" id="archiveFile" accept="application/json" class="hide">
+      <div id="archiveList"></div>
+    </div>
   </section>
 
   </main>
@@ -418,7 +429,7 @@ const STRUCT=[{k:'schema',n:'상품 상세에 Product/Book 구조화 데이터 �
  {k:'wiki',n:'나무위키·위키백과 「NE능률」 항목이 최신 상태',own:'디지털마케팅팀',d:'1주',cost:'0'}];
 
 let S={obs:[],robots:{},struct:{},track:null,engToggle:{pplx:false,gem:false}};
-let mem={},qi=0,abortF=false,QUEUE=[],apiOK=null,ACCESS='';
+let mem={},qi=0,abortF=false,QUEUE=[],apiOK=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 const pct=v=>Math.round(v*100);
@@ -484,7 +495,7 @@ async function serverCall(prompt,{useSearch=false,forceJson=false}={}){
  for(let a=1;a<=3;a++){
   try{
    const r=await fetch('/api/score',{method:'POST',
-    headers:{'Content-Type':'application/json','x-access-code':ACCESS},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({prompt,useSearch,forceJson})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok) throw new Error(d.error||('HTTP '+r.status));
@@ -809,8 +820,8 @@ function sheetText(){const c=$('#sheet').cloneNode(true);
 
 /* ═══════════ NAV ═══════════ */
 function pane(n){$$('.step').forEach(s=>s.setAttribute('aria-current',String(+s.dataset.p===n)));
- [1,2,3,4].forEach(i=>$('#p'+i).classList.toggle('hide',i!==n));
- if(n===2)wb();if(n===3)renderDiag();if(n===4)report();
+ [1,2,3,4,5].forEach(i=>$('#p'+i).classList.toggle('hide',i!==n));
+ if(n===2)wb();if(n===3)renderDiag();if(n===4)report();if(n===5)renderArchive();
  window.scrollTo({top:0,behavior:'smooth'});tick()}
 function tick(){const d=QUEUE.filter(doneKey).length,left=Math.max(0,QUEUE.length-d);
  $('#clock').innerHTML=`진행 <b>${d}</b>/${QUEUE.length} · 잔여 <b>${left?Math.round(left*.7)+'분':'완료'}</b>`;
@@ -819,42 +830,106 @@ function tick(){const d=QUEUE.filter(doneKey).length,left=Math.max(0,QUEUE.lengt
  $('#nextUp').textContent = blocked().length? 'robots.txt 차단 발견 — 보고서에 최우선 조치로 자동 반영됩니다.'
   : d<QUEUE.length? `실측 ${left}건 남았습니다.` : '측정 완료. Step 4에서 보고서를 출력하십시오.'}
 
-/* ═══════════ GATE / TRACK ═══════════ */
+/* ═══════════ TRACK (로그인 없음 — 트랙 선택이 최초 화면) ═══════════ */
 function renderTrackGrid(){
  $('#trackGrid').innerHTML=Object.entries(TRACKS).map(([k,t])=>
   `<button class="trackcard" data-tk="${k}"><b>${escHtml(t.name)}</b><span>${escHtml(t.desc)}</span>
    <u>${t.cats.reduce((n,c)=>n+P.filter(p=>p.c===c).length,0)}문항</u></button>`).join('');
 }
-async function doGate(){
- const code=$('#gateCode').value.trim();
- if(!code){$('#gateMsg').textContent='암호를 입력하십시오.';return}
- $('#gateBtn').disabled=1;$('#gateMsg').textContent='확인 중…';
- try{
-  const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
-  const d=await r.json();
-  if(!d.ok){$('#gateMsg').textContent='암호가 올바르지 않습니다.';$('#gateBtn').disabled=0;return}
-  ACCESS=code; sessionStorage.setItem('ne_geo_code',code);
-  $('#gate').classList.add('hide');
-  const saved=ls_get('ne_geo_state');
-  if(saved&&saved.track){S=saved;S.robots=S.robots||{};S.struct=S.struct||{};enterApp()}
-  else{$('#trackGate').classList.remove('hide');renderTrackGrid()}
- }catch(e){$('#gateMsg').textContent='서버에 연결할 수 없습니다. Vercel 배포 상태를 확인하십시오.';$('#gateBtn').disabled=0}
-}
 function enterApp(){
- $('#trackGate').classList.add('hide');$('#gate').classList.add('hide');
+ $('#trackGate').classList.add('hide');
  $('#app').classList.remove('hide');
  $('#trackLabel').textContent=TRACKS[S.track].name;
  buildQueue();renderChecks();const n=firstOpen();qi=n>=0?n:0;wb();pane(1);
  testAPI();
 }
 
+/* ═══════════ 보고서 보관함 (기록이 남도록 저장) ═══════════ */
+function archiveList(){return ls_get('ne_geo_reports')||[]}
+function saveReportToArchive(){
+ const html=$('#sheet').innerHTML;
+ if(!html||html.length<20){toast('먼저 보고서를 생성하십시오');return}
+ const m=M(),v=verdict();
+ const list=archiveList();
+ list.unshift({
+  id:'r_'+Date.now(),
+  at:Date.now(),
+  track:S.track,
+  trackName:TRACKS[S.track]?TRACKS[S.track].name:S.track,
+  verdict:v.k,
+  n:m.n, hit:m.hit, err:m.err,
+  html
+ });
+ ls_set('ne_geo_reports',list.slice(0,50)); // 최근 50건까지 보관
+ $('#saveMsg').textContent='보관함에 저장했습니다 · '+new Date().toLocaleString('ko-KR');
+ toast('보고서를 기록에 남겼습니다');
+}
+function renderArchive(){
+ const list=archiveList();
+ $('#archiveCount').textContent=`저장된 보고서 ${list.length}건`;
+ if(!list.length){$('#archiveList').innerHTML='<div class="arc-empty">아직 저장된 보고서가 없습니다. Step 4에서 「보고서 저장」을 눌러보십시오.</div>';return}
+ $('#archiveList').innerHTML=list.map(r=>{
+  const d=new Date(r.at).toLocaleString('ko-KR');
+  return `<div class="arc-item">
+   <div class="meta"><b>${escHtml(r.trackName||r.track)} · ${escHtml(r.verdict)}</b>
+   <span>${d} · 관측 ${r.n}건 · 노출률 ${pct(r.hit||0)}%${r.err?' · 오류 '+r.err+'건':''}</span></div>
+   <div class="row">
+    <button class="btn btn-sm" data-view="${r.id}">보기</button>
+    <button class="btn btn-sm" data-dl="${r.id}">HTML 다운로드</button>
+    <button class="btn btn-sm" data-del="${r.id}">삭제</button>
+   </div></div>`;
+ }).join('');
+}
+function viewArchived(id){
+ const r=archiveList().find(x=>x.id===id); if(!r)return;
+ $('#sheet').innerHTML=r.html;
+ pane(4);
+ toast('보관함에서 불러왔습니다 (현재 데이터로 다시 생성하려면 「다시 생성」)');
+}
+function downloadArchived(id){
+ const r=archiveList().find(x=>x.id===id); if(!r)return;
+ const css=document.querySelector('style').textContent;
+ const full=`<!doctype html><html><head><meta charset="utf-8"><title>NE GEO 보고서</title><style>${css}</style></head><body><div class="sheet-wrap"><article class="sheet">${r.html}</article></div></body></html>`;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([full],{type:'text/html'}));
+ a.download='NE_GEO_보고서_'+(r.trackName||r.track)+'_'+new Date(r.at).toISOString().slice(0,10)+'.html';a.click();
+}
+function deleteArchived(id){
+ if(!confirm('이 보고서를 삭제하시겠습니까?'))return;
+ ls_set('ne_geo_reports',archiveList().filter(x=>x.id!==id));
+ renderArchive();
+}
+
 /* ═══════════ EVENTS ═══════════ */
-$('#gateBtn').onclick=doGate;
-$('#gateCode').addEventListener('keydown',e=>{if(e.key==='Enter')doGate()});
 $('#trackGrid').onclick=e=>{const k=e.target.closest('.trackcard')?.dataset.tk;if(!k)return;
  S.track=k; S.engToggle={pplx:$('#engPplx').checked,gem:$('#engGem').checked};
  S.obs=[];save();enterApp();};
 $('#btnChangeTrack').onclick=()=>{$('#app').classList.add('hide');$('#trackGate').classList.remove('hide');renderTrackGrid()};
+$('#btnSaveReport').onclick=saveReportToArchive;
+$('#archiveList').onclick=e=>{
+ const v=e.target.dataset.view,dl=e.target.dataset.dl,de=e.target.dataset.del;
+ if(v)viewArchived(v); if(dl)downloadArchived(dl); if(de)deleteArchived(de);
+};
+$('#btnExportArchive').onclick=()=>{
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(archiveList(),null,2)],{type:'application/json'}));
+ a.download='NE_GEO_보관함_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+};
+$('#btnImportArchive').onclick=()=>$('#archiveFile').click();
+$('#archiveFile').onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{
+  try{
+   const imported=JSON.parse(rd.result);
+   if(!Array.isArray(imported))throw new Error('형식 오류');
+   const cur=archiveList();
+   const merged=[...imported,...cur].filter((r,i,arr)=>arr.findIndex(x=>x.id===r.id)===i);
+   ls_set('ne_geo_reports',merged.slice(0,200));
+   renderArchive();toast('보관함을 합쳤습니다');
+  }catch(err){toast('가져오기 실패 — JSON 형식을 확인하십시오')}
+ };
+ rd.readAsText(f);
+};
 $$('.step').forEach(b=>b.onclick=()=>pane(+b.dataset.p));
 $('#toStep2').onclick=()=>pane(2);$('#toStep4').onclick=()=>pane(4);
 $('#btnTest').onclick=testAPI;
@@ -919,9 +994,14 @@ $('#btnExport').onclick=()=>{const a=document.createElement('a');
  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
  a.download='NE_GEO_백업_'+S.track+'_'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('백업을 내려받았습니다')};
 
-/* ═══════════ BOOT ═══════════ */
+/* ═══════════ BOOT (로그인 없음) ═══════════ */
 (function(){
- const savedCode=sessionStorage.getItem('ne_geo_code');
- if(savedCode){ACCESS=savedCode;$('#gateCode').value=savedCode;doGate();}
+ const saved=ls_get('ne_geo_state');
+ if(saved&&saved.track&&TRACKS[saved.track]){
+  S=saved;S.robots=S.robots||{};S.struct=S.struct||{};S.engToggle=S.engToggle||{pplx:false,gem:false};
+  enterApp();
+ }else{
+  renderTrackGrid();
+ }
 })();
 </script>

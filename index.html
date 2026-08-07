@@ -1,0 +1,859 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NE능률 GEO 진단</title>
+<style>
+:root{
+  --steel:#EDEFF2;--panel:#FFF;--panel2:#F7F8FA;
+  --ink:#15171C;--ink2:#565C65;--ink3:#8A9099;
+  --rule:#DBDEE3;--rule2:#EDEFF2;
+  --ne:#D6182B;--ne-s:#FBEBED;
+  --go:#0B6E5F;--go-s:#E4F0ED;
+  --warn:#A85A06;--warn-s:#FBF1E3;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--steel);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;letter-spacing:-.012em}p{margin:0 0 10px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.muted{color:var(--ink2)}.sm{font-size:12.5px}.xs{font-size:11.5px}.hide{display:none!important}
+.top{background:var(--panel);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:60}
+.top-in{max-width:1500px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand b{font-family:var(--mono);color:var(--ne);font-size:15px;letter-spacing:.03em}
+.brand span{font-weight:700;font-size:15px}
+.brand i{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);font-style:normal}
+.sp{flex:1}
+.clock{font-family:var(--mono);font-size:11.5px;color:var(--ink2)}.clock b{color:var(--ink)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ink3);margin-right:5px;vertical-align:1px}
+.dot.ok{background:var(--go)}.dot.no{background:var(--ne)}
+.shell{max-width:1500px;margin:0 auto;display:grid;grid-template-columns:250px 1fr}
+@media(max-width:1000px){.shell{grid-template-columns:1fr}}
+.rail{position:sticky;top:53px;padding:22px 18px 40px;border-right:1px solid var(--rule);background:var(--panel);min-height:calc(100vh - 53px)}
+@media(max-width:1000px){.rail{position:static;min-height:0;border-right:0;border-bottom:1px solid var(--rule)}}
+.step{display:block;width:100%;text-align:left;background:none;border:0;padding:11px 0 11px 30px;position:relative;cursor:pointer;font-family:inherit;color:var(--ink3);border-top:1px solid var(--rule2)}
+.step:first-of-type{border-top:0}.step:hover{color:var(--ink)}.step[aria-current="true"]{color:var(--ink)}
+.step-n{position:absolute;left:0;top:12px;width:19px;height:19px;border:1px solid var(--rule);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--ink3);background:var(--panel)}
+.step[aria-current="true"] .step-n{border-color:var(--ne);color:var(--ne)}
+.step.done .step-n{background:var(--go);border-color:var(--go);color:#fff}
+.step-t{font-size:13px;font-weight:600;display:block}
+.step-s{font-size:11px;color:var(--ink3);display:block;margin-top:1px}
+.step[aria-current="true"] .step-s{color:var(--ink2)}
+.railfoot{margin-top:24px;padding-top:16px;border-top:1px solid var(--rule2)}
+.nextup{background:var(--panel2);border:1px solid var(--rule);padding:11px 12px}
+.nextup .eb{margin-bottom:5px;display:block}.nextup p{margin:0;font-size:12px;line-height:1.45}
+.main{padding:26px 26px 90px;min-width:0}
+.pane-h{margin-bottom:16px}.pane-h h2{font-size:19px;margin:3px 0 5px}
+.card{background:var(--panel);border:1px solid var(--rule);padding:20px}.card+.card{margin-top:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:900px){.g2{grid-template-columns:1fr}}
+.btn{appearance:none;background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);transition:border-color .12s}
+.btn:hover:not(:disabled){border-color:var(--ink3)}.btn:focus-visible{outline:2px solid var(--ne);outline-offset:1px}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn-p{background:var(--ne);border-color:var(--ne);color:#fff}.btn-p:hover:not(:disabled){background:#B71324;border-color:#B71324}
+.btn-lg{padding:12px 22px;font-size:14px}.btn-sm{padding:5px 10px;font-size:11.5px}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+select,input,textarea{font-family:inherit;font-size:13px;background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:7px 9px;width:100%;color:var(--ink)}
+textarea{resize:vertical;line-height:1.5}
+select:focus,input:focus,textarea:focus{outline:2px solid var(--ne);outline-offset:-1px;border-color:var(--ne)}
+input:disabled{background:var(--panel2);color:var(--ink3)}
+label.fl{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.hint{border-left:2px solid var(--rule);background:var(--panel2);padding:11px 14px;font-size:12.5px;color:var(--ink2)}
+.hint.h-ne{border-left-color:var(--ne);background:var(--ne-s);color:#7C1420}
+.hint.h-warn{border-left-color:var(--warn);background:var(--warn-s);color:#7A430A}
+.hint.h-go{border-left-color:var(--go);background:var(--go-s);color:#0A5A4D}
+.prog{height:3px;background:var(--rule2);margin:14px 0 10px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ne);width:0;transition:width .3s}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.log{font-family:var(--mono);font-size:11px;line-height:1.7;background:#15171C;color:#C3C9D0;padding:12px 14px;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.log b{color:#7ED4C0;font-weight:400}.log em{color:#F08A9B;font-style:normal}.log u{color:#E8C07A;text-decoration:none}
+.wb-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--rule2);margin-bottom:16px}
+.wb-count{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-.02em}
+.wb-count s{text-decoration:none;color:var(--ink3);font-size:15px}
+.q-eng{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--rule);border-radius:2px;color:var(--ink2);background:var(--panel2)}
+.q-prompt{font-size:16px;line-height:1.5;padding:16px;background:var(--panel2);border:1px solid var(--rule);margin:12px 0}
+.q-prompt .pid{font-family:var(--mono);font-size:11px;color:var(--ne);font-weight:600;display:block;margin-bottom:6px;letter-spacing:.05em}
+.kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px;padding:1px 5px;background:var(--panel2);color:var(--ink2)}
+.qgrid{display:flex;gap:3px;flex-wrap:wrap;margin-top:14px}
+.qdot{width:15px;height:15px;border-radius:2px;background:var(--rule2);border:1px solid var(--panel);cursor:pointer}
+.qdot.d-done{background:var(--go)}.qdot.d-miss{background:var(--ne)}.qdot.d-cur{background:var(--ink)}.qdot.d-skip{background:var(--rule)}
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid var(--rule);background:var(--panel2);color:var(--ink2)}
+.badge.b-loc{background:var(--warn-s);border-color:#EDD9BC;color:var(--warn)}
+.verdict{border:1px solid var(--rule);background:var(--panel)}
+.verdict-h{padding:16px 20px;border-bottom:1px solid var(--rule2)}
+.verdict-h .eb{display:block;margin-bottom:6px}.verdict-h h3{font-size:18px;line-height:1.35}
+.v-BLOCK .verdict-h,.v-ABSENT .verdict-h{background:var(--ne-s);border-bottom-color:#F0CDD2}
+.v-BLOCK .verdict-h h3,.v-ABSENT .verdict-h h3{color:#8A1120}
+.v-ACCURACY .verdict-h{background:var(--warn-s);border-bottom-color:#EDD9BC}.v-ACCURACY .verdict-h h3{color:#7A430A}
+.v-UNATTRIBUTED .verdict-h{background:var(--panel2)}
+.v-HEALTHY .verdict-h{background:var(--go-s);border-bottom-color:#BFDCD5}.v-HEALTHY .verdict-h h3{color:#0A5A4D}
+.verdict-b{padding:16px 20px}
+.ro{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));background:var(--rule);border:1px solid var(--rule)}
+.ro>div{background:var(--panel);padding:14px 15px}
+.ro .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:6px}
+.ro .v{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ro .v u{font-size:13px;text-decoration:none;color:var(--ink3)}
+.ro .s{font-size:11px;color:var(--ink2);margin-top:6px;line-height:1.35}
+.good{color:var(--go)}.bad{color:var(--ne)}.warn{color:var(--warn)}
+table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.dt th{text-align:left;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:400;padding:0 10px 7px 0;border-bottom:1px solid var(--rule)}
+table.dt td{padding:8px 10px 8px 0;border-bottom:1px solid var(--rule2);vertical-align:top}
+table.dt tr:last-child td{border-bottom:0}
+table.dt .n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;padding-right:12px;white-space:nowrap}
+.bar{height:5px;background:var(--rule2);border-radius:2px;overflow:hidden;min-width:56px}
+.bar i{display:block;height:100%;border-radius:2px;background:var(--ink)}.bar i.b-ne{background:var(--ne)}.bar i.b-go{background:var(--go)}
+.tag{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:var(--panel2);border:1px solid var(--rule);color:var(--ink2)}
+.chk{border:1px solid var(--rule)}
+.chk-r{padding:10px 13px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--rule2)}
+.chk-r:first-child{border-top:0}.chk-r>span:first-child{flex:1;min-width:210px;font-size:12.5px}
+.chk-r a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12px}
+.chk-r a:hover{color:var(--ne);border-bottom-color:var(--ne)}
+.seg{appearance:none;border:1px solid var(--rule);background:var(--panel);padding:4px 10px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border-radius:2px;color:var(--ink3)}
+.seg[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.seg.s-b[aria-pressed="true"]{background:var(--ne);border-color:var(--ne)}
+.seg.s-g[aria-pressed="true"]{background:var(--go);border-color:var(--go)}
+.sheet-wrap{background:var(--steel)}
+.sheet{background:#fff;max-width:820px;margin:0 auto;padding:56px 60px 70px;border:1px solid var(--rule)}
+@media(max-width:700px){.sheet{padding:32px 24px 44px}}
+.sheet .r-kicker{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ne);margin-bottom:14px}
+.sheet h1{font-size:27px;line-height:1.3;letter-spacing:-.02em;margin-bottom:12px}
+.sheet .r-meta{font-family:var(--mono);font-size:11px;color:var(--ink3);padding-bottom:22px;border-bottom:2px solid var(--ink)}
+.sheet h2{font-size:12px;font-family:var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3);margin:38px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--rule)}
+.sheet h3{font-size:15px;margin:20px 0 8px}
+.sheet p{font-size:14px;line-height:1.75;margin:0 0 11px}
+.sheet .lead{font-size:16.5px;line-height:1.7;font-weight:600;letter-spacing:-.01em}
+.sheet ul{margin:0 0 12px;padding-left:19px}.sheet li{font-size:14px;line-height:1.7;margin-bottom:5px}
+.sheet .callout{border-left:3px solid var(--ne);background:var(--ne-s);padding:14px 17px;margin:16px 0}
+.sheet .callout p{margin:0;color:#7C1420;font-size:13.5px}
+.sheet .callout.c-w{border-left-color:var(--warn);background:var(--warn-s)}.sheet .callout.c-w p{color:#7A430A}
+.sheet .callout.c-n{border-left-color:var(--rule);background:var(--panel2)}.sheet .callout.c-n p{color:var(--ink2)}
+.sheet table{width:100%;border-collapse:collapse;font-size:12.5px;margin:12px 0 16px}
+.sheet table th{text-align:left;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:400;padding:0 9px 6px 0;border-bottom:1px solid var(--ink)}
+.sheet table td{padding:7px 9px 7px 0;border-bottom:1px solid var(--rule2);vertical-align:top;line-height:1.5}
+.sheet table .n{font-family:var(--mono);text-align:right;padding-right:10px;white-space:nowrap}
+.sheet .kpi{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);margin:18px 0}
+.sheet .kpi div{padding:13px 14px;border-left:1px solid var(--rule)}.sheet .kpi div:first-child{border-left:0}
+.sheet .kpi b{display:block;font-family:var(--mono);font-size:23px;font-weight:600;line-height:1}
+.sheet .kpi s{display:block;text-decoration:none;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.sheet .kpi em{display:block;font-style:normal;font-size:10.5px;color:var(--ink2);margin-top:5px;line-height:1.3}
+@media(max-width:640px){.sheet .kpi{grid-template-columns:repeat(2,1fr)}.sheet .kpi div:nth-child(3){border-left:0}}
+.sheet .quote{font-family:var(--mono);font-size:11.5px;line-height:1.65;background:var(--panel2);border:1px solid var(--rule);padding:11px 13px;margin:8px 0;white-space:pre-wrap;color:var(--ink2)}
+.sheet .sig{margin-top:46px;padding-top:16px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink3);font-family:var(--mono)}
+.toolbar{position:sticky;top:53px;z-index:40;background:var(--panel);border:1px solid var(--rule);padding:10px 14px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+@media print{body{background:#fff}.top,.rail,.toolbar,.pane-h,.no-print{display:none!important}
+.shell{display:block}.main{padding:0}.sheet{border:0;max-width:none;padding:0;margin:0}
+.sheet h2{margin-top:26px}@page{margin:18mm 16mm}
+.sheet .callout,.sheet table,.sheet .kpi{break-inside:avoid}}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 18px;border-radius:3px;font-size:12.5px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+/* gate & track screens */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-card{max-width:380px;width:100%;background:#fff;border:1px solid var(--rule);padding:32px 30px}
+.gate-card .brand{margin-bottom:22px}
+.trackgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px}
+.trackcard{border:1px solid var(--rule);background:#fff;padding:16px;text-align:left;cursor:pointer;transition:border-color .12s}
+.trackcard:hover{border-color:var(--ne)}
+.trackcard b{display:block;font-size:14.5px;margin-bottom:4px}
+.trackcard span{font-size:11.5px;color:var(--ink2);line-height:1.4}
+.trackcard u{display:block;margin-top:8px;font-family:var(--mono);font-size:10px;text-decoration:none;color:var(--ink3)}
+.arc-item{border:1px solid var(--rule);border-top:0;padding:13px 15px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.arc-item:first-child{border-top:1px solid var(--rule)}
+.arc-item .meta{flex:1;min-width:220px}
+.arc-item .meta b{font-size:13.5px;display:block;margin-bottom:2px}
+.arc-item .meta span{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.arc-empty{border:1px solid var(--rule);padding:24px;text-align:center;color:var(--ink3);font-size:12.5px}
+</style>
+
+<!-- ═════════════ TRACK SELECT (최초 화면 · 로그인 없음) ═════════════ -->
+<div class="gate" id="trackGate">
+  <div class="gate-card" style="max-width:640px">
+    <div class="brand"><b>NE</b><span>GEO 진단</span></div>
+    <p class="sm muted">담당 트랙을 선택하십시오. 트랙당 소요 시간은 15~25분입니다.</p>
+    <div class="trackgrid" id="trackGrid"></div>
+    <div style="margin-top:18px">
+      <label class="fl">측정 엔진 (기본 ChatGPT + 네이버 · 필요 시 추가)</label>
+      <div class="row" style="margin-top:6px">
+        <label class="row xs" style="gap:5px"><input type="checkbox" id="engClaude" style="width:auto">Claude 추가</label>
+        <label class="row xs" style="gap:5px"><input type="checkbox" id="engPplx" style="width:auto">Perplexity 추가</label>
+        <label class="row xs" style="gap:5px"><input type="checkbox" id="engGem" style="width:auto">Gemini 추가</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ APP ═════════════ -->
+<div id="app" class="hide">
+<header class="top no-print">
+  <div class="top-in">
+    <div class="brand"><b>NE</b><span>GEO 진단</span><i id="trackLabel">v5</i></div>
+    <div class="sp"></div>
+    <span class="clock"><span class="dot ok"></span>로컬 채점 · API 미사용</span>
+    <span class="clock" id="clock">진행 0/0</span>
+    <button class="btn btn-sm" id="btnChangeTrack">트랙 변경</button>
+    <button class="btn btn-sm" id="btnExport">JSON 백업</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail no-print">
+    <button class="step" data-p="1" aria-current="true"><span class="step-n">1</span><span class="step-t">환경 점검</span><span class="step-s">관리자용 · 생략 가능</span></button>
+    <button class="step" data-p="2"><span class="step-n">2</span><span class="step-t">실측</span><span class="step-s">캡처 워크벤치</span></button>
+    <button class="step" data-p="3"><span class="step-n">3</span><span class="step-t">진단</span><span class="step-s">판정 확인</span></button>
+    <button class="step" data-p="4"><span class="step-n">4</span><span class="step-t">보고서</span><span class="step-s">출력 · 인쇄 · 메일</span></button>
+    <button class="step" data-p="5"><span class="step-n">5</span><span class="step-t">기록</span><span class="step-s">저장된 보고서 보관함</span></button>
+    <div class="railfoot"><div class="nextup"><span class="eb">지금 할 일</span><p id="nextUp">—</p></div></div>
+  </nav>
+
+  <main class="main">
+
+  <section id="p1">
+    <div class="pane-h"><span class="eb">Step 01 · 관리자용</span><h2>환경 점검 (선택)</h2>
+      <p class="muted sm">일반 테스터는 이 단계를 건너뛰고 바로 실측으로 이동해도 됩니다.</p></div>
+
+    <div class="card">
+      <h3 style="font-size:15px">채점 방식 안내</h3>
+      <p class="muted sm" style="margin:4px 0 0">이 도구는 <b>API 연동 없이</b> 규칙 기반(로컬) 채점으로 동작합니다. 답변을 붙여넣으면 자사 브랜드·경쟁사·출처·회사명 동반 여부가 즉시 자동 판정되며, <b>정보 오류만 직접 확인</b>하시면 됩니다. 판정 결과는 저장 전 항상 화면에서 검토·수정할 수 있습니다.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size:15px">robots.txt — AI 크롤러 차단 여부</h3>
+      <p class="muted sm">링크를 열어 <span class="tag">GPTBot</span> <span class="tag">ClaudeBot</span> <span class="tag">PerplexityBot</span> <span class="tag">Google-Extended</span> 를 Ctrl+F로 찾으십시오.</p>
+      <div class="chk" id="robots" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size:15px">구조 점검</h3>
+      <div class="chk" id="struct" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size:15px">다른 트랙 데이터 합치기</h3>
+      <p class="muted sm">동료가 내보낸 JSON 백업을 붙여넣으면 관측이 합쳐집니다.</p>
+      <textarea id="impBox" rows="4" placeholder="JSON 붙여넣기" style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" id="impBtn">가져오기</button>
+        <span class="muted xs" id="impMsg"></span></div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn btn-p btn-lg" id="toStep2">실측으로 이동</button></div>
+  </section>
+
+  <section id="p2" class="hide">
+    <div class="pane-h"><span class="eb">Step 02</span><h2>실측 워크벤치</h2>
+      <p class="muted sm">복사 → 열기 → 붙여넣기 → <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span>. 규칙 기반으로 즉시 채점되며, 확인 후 저장하면 다음 항목으로 넘어갑니다.</p></div>
+    <div class="hint h-warn">반드시 <b>로그아웃 · 시크릿 창 · 임시 채팅</b> 상태로 측정하십시오.</div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="wb-head">
+        <div class="wb-count" id="wbCount">0<s>/0</s></div>
+        <span class="q-eng" id="wbEng">—</span>
+        <div class="sp"></div>
+        <button class="btn btn-sm" id="wbSkip">건너뛰기</button>
+        <button class="btn btn-sm" id="wbPrev">이전</button>
+      </div>
+      <div class="q-prompt"><span class="pid" id="wbPid">—</span><span id="wbText">—</span></div>
+      <div class="row">
+        <button class="btn" id="wbCopy">프롬프트 복사</button>
+        <button class="btn btn-p" id="wbOpen">서비스 열기</button>
+        <span class="muted xs" id="wbHint"></span>
+      </div>
+      <div style="margin-top:14px">
+        <label class="fl">AI 답변 붙여넣기</label>
+        <textarea id="wbAns" rows="8" placeholder="답변 전체를 그대로 붙여넣으세요. 출처 링크까지 함께 복사하면 인용 분석이 정확해집니다."></textarea>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-p" id="wbScore">채점하기 <span class="kbd" style="margin-left:5px">Ctrl+↵</span></button>
+        <span class="muted xs" id="wbState"></span>
+      </div>
+      <div class="qgrid" id="qgrid"></div>
+    </div>
+
+    <div class="card hide" id="wbFix">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <h3 style="font-size:14px">채점 결과 확인 · 필요시 수정</h3><span id="fixBadge"></span>
+      </div>
+      <div class="row">
+        <div style="min-width:130px"><label class="fl">노출</label><select id="fM"><option value="1">노출됨</option><option value="0">미노출</option></select></div>
+        <div style="min-width:100px"><label class="fl">순위</label><input id="fR"></div>
+        <div style="min-width:150px"><label class="fl">회사명 동반</label><select id="fC"><option value="1">표기됨</option><option value="0">제품명만</option></select></div>
+        <div style="min-width:150px"><label class="fl">자사 출처 인용</label><select id="fS"><option value="1">인용됨</option><option value="0">외부만</option></select></div>
+        <div style="min-width:130px"><label class="fl">정보 오류</label><select id="fA"><option value="0">없음</option><option value="1">있음</option></select></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:180px"><label class="fl">언급 교재</label><input id="fT"></div>
+        <div style="flex:1;min-width:180px"><label class="fl">경쟁사</label><input id="fP"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:180px"><label class="fl">출처</label><input id="fU"></div>
+        <div style="flex:1;min-width:180px"><label class="fl">오류 내용</label><input id="fN"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn btn-p" id="fSave">저장하고 다음</button>
+        <button class="btn" id="fRetry">다시 채점</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="p3" class="hide">
+    <div class="pane-h"><span class="eb">Step 03</span><h2>자동 진단</h2></div>
+    <div id="verdictBox"></div>
+    <div class="ro" id="roBox" style="margin-top:12px"></div>
+    <div class="g2" style="margin-top:12px">
+      <div class="card"><h3 style="font-size:14px">영역별 노출률</h3>
+        <table class="dt" id="catT" style="margin-top:10px"></table></div>
+      <div class="card"><h3 style="font-size:14px">엔진별 노출률</h3>
+        <table class="dt" id="engT" style="margin-top:10px"></table></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3 style="font-size:14px">콘텐츠 갭 판정</h3>
+      <table class="dt" id="gapT" style="margin-top:10px"></table></div>
+    <div class="row" style="margin-top:14px"><button class="btn btn-p btn-lg" id="toStep4">보고서 생성</button></div>
+  </section>
+
+  <section id="p4" class="hide">
+    <div class="toolbar no-print">
+      <button class="btn btn-p" id="btnSaveReport">보고서 저장 (기록에 남기기)</button>
+      <button class="btn" id="btnPrint">인쇄 / PDF 저장</button>
+      <button class="btn" id="btnHtml">HTML 복사 (메일)</button>
+      <button class="btn" id="btnTxt">텍스트 복사</button>
+      <button class="btn" id="btnCsv">원자료 CSV</button>
+      <button class="btn" id="btnRe">다시 생성</button>
+      <span class="muted xs" id="saveMsg"></span>
+    </div>
+    <div class="sheet-wrap"><article class="sheet" id="sheet"></article></div>
+  </section>
+
+  <section id="p5" class="hide">
+    <div class="pane-h"><span class="eb">Step 05</span><h2>저장된 보고서 보관함</h2>
+      <p class="muted sm">Step 4에서 「보고서 저장」을 누른 기록입니다. 이 브라우저에만 남으며, 다른 기기에는 동기화되지 않습니다.</p></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <span class="muted sm" id="archiveCount">저장된 보고서 0건</span>
+        <div class="row">
+          <button class="btn btn-sm" id="btnExportArchive">전체 보관함 내보내기</button>
+          <button class="btn btn-sm" id="btnImportArchive">가져오기</button>
+        </div>
+      </div>
+      <input type="file" id="archiveFile" accept="application/json" class="hide">
+      <div id="archiveList"></div>
+    </div>
+  </section>
+
+  </main>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════ DATA ═══════════ */
+const P=[
+ {id:'A1',c:'A',t:'초등학교 3학년 아이가 파닉스는 뗐는데 그다음에 뭘 시켜야 할지 모르겠어요. 집에서 엄마표로 할 만한 영어 리딩 교재 추천해주세요.'},
+ {id:'A2',c:'A',t:'초등 저학년 영어 처음 시작하는데 파닉스 교재 뭐가 좋아요?'},
+ {id:'A3',c:'A',t:'초등 5학년인데 영어 문법을 한 번도 안 배웠어요. 쉬운 초등 문법 교재 없을까요?'},
+ {id:'A4',c:'A',t:'아이가 영어책 읽기를 싫어하는데 과학이나 사회 같은 내용으로 된 영어 리딩 교재 있나요?'},
+ {id:'B1',c:'B',t:'중1 첫 영어 내신 시험 준비하는데 문법책 하나 추천해주세요.'},
+ {id:'B2',c:'B',t:'중학생 영어 단어장 뭐가 제일 많이 쓰나요?'},
+ {id:'B3',c:'B',t:'중2 아이 영어 독해가 약한데 독해 교재 추천해주세요.'},
+ {id:'C1',c:'C',t:'고1 모의고사 영어 4등급인데 독해 교재 뭐부터 해야 하나요?'},
+ {id:'C2',c:'C',t:'고등학생 영어 단어장 추천해주세요.'},
+ {id:'D1',c:'D',t:'초등 영어 공부방을 처음 여는데 코스북 뭘 쓰면 좋을까요? 레벨별로 알려주세요.'},
+ {id:'D2',c:'D',t:'영어학원 초등부 리딩 커리큘럼을 짜려는데 단계별 교재 추천해주세요.'},
+ {id:'E1',c:'E',t:'능률VOCA 중등 필수 최신판은 몇 년도 개정인가요? 가격과 구성도 알려주세요.'},
+ {id:'E2',c:'E',t:'Subject Link 시리즈는 몇 단계까지 있고 각 단계 대상 학년이 어떻게 되나요?'},
+ {id:'E3',c:'E',t:'1316 Reading은 몇 레벨까지 있고 최근 개정이 언제인가요?'}];
+const CAT={A:{n:'초등 ELT',b:'NE Build & Grow',h:'취약 가설'},B:{n:'중등',b:'능률',h:'강세 가설'},
+ C:{n:'고등·수능',b:'능률',h:'강세 가설'},D:{n:'교사·원장 B2B',b:'B&G',h:'핵심 수익원'},E:{n:'정확성 검증',b:'전사',h:'오정보 리스크'}};
+const TRACKS={
+ elem:{name:'초등부 담당',cats:['A'],desc:'파닉스 이후~초등 리딩·문법. NE Build & Grow 취약 가설 검증.'},
+ mid:{name:'중등부 담당',cats:['B'],desc:'중등 내신·단어·독해. 능률 강세 가설 검증.'},
+ high:{name:'고등부 담당',cats:['C'],desc:'고등 독해·단어·수능. 능률 강세 가설 검증.'},
+ b2b:{name:'교사·원장 B2B',cats:['D'],desc:'학원·공부방 커리큘럼 추천 상황.'},
+ acc:{name:'정확성 검증',cats:['E'],desc:'개정연도·가격·구성 오류 탐지. 브랜드명 포함.'},
+ all:{name:'전체 (관리자)',cats:['A','B','C','D','E'],desc:'모든 트랙을 한 번에 수행합니다.'}
+};
+const ENG_MIN=[
+ {id:'chatgpt',n:'ChatGPT',u:q=>'https://chatgpt.com/?temporary-chat=true',h:'임시 채팅(Temporary Chat)을 켜십시오.'},
+ {id:'naver',n:'네이버',u:q=>'https://search.naver.com/search.naver?query='+encodeURIComponent(q),h:'시크릿 창 권장.'}];
+const ENG_CLAUDE={id:'claude',n:'Claude',u:q=>'https://claude.ai/new',h:'Incognito Conversation으로 여십시오. 질문은 자동 입력되지 않으니 복사해서 붙여넣으십시오.'};
+const ENG_PPLX={id:'perplexity',n:'Perplexity',u:q=>'https://www.perplexity.ai/search?q='+encodeURIComponent(q),h:'질문이 자동 입력됩니다.'};
+const ENG_GEM={id:'gemini',n:'Gemini',u:q=>'https://gemini.google.com/app',h:'시크릿 창 + 로그아웃 상태로 여십시오.'};
+let ENG=[...ENG_MIN];
+const ALL=()=>[...ENG_MIN,ENG_CLAUDE,ENG_PPLX,ENG_GEM];
+
+/* 자사 브랜드 — 긴 이름부터 (부분일치·중복집계 방지) */
+const OURS=['NE Build & Grow','NE Build&Grow','Build & Grow','Build&Grow','빌드앤그로우','NE능률','엔이능률','능률교육',
+ '능률VOCA','능률 VOCA','리딩튜터','빠른독해 바른독해','빠바','Grammar Zone','그래머존','Grammar Inside','1316 Reading','1316 Listening','1316',
+ 'Subject Link','서브젝트링크','Easy Link','Insight Link','Reading Sense','Reading Sketch','Phonics Code','Come On, Everyone','Come On',
+ 'Read It','Speaking Stage','Listening Stage','Grammar Ten','Grammar Stage','Word Up','요즘 초등 영단어','Reading Stars','리딩스타',
+ 'NELT','주니어랩','NE Times','NE Tutor','능률'];
+
+/* 경쟁사 — 국내 ELT 출판사 + 해외 리더스/코스북 (v3에서 누락되어 있던 부분, 실측에서 실제로 다수 검출됨) */
+const COMP_G={
+ '이퓨처':['이퓨처','e-future','이퓨쳐'],'브릭스':['브릭스','Bricks'],'웅진컴퍼스':['웅진컴퍼스','컴퍼스미디어'],
+ '이퍼블릭':['이퍼블릭'],'에이리스트':['에이리스트','A*List'],'쎄듀':['쎄듀','CEDU','세듀'],'다락원':['다락원'],'YBM':['YBM','와이비엠'],
+ '마더텅':['마더텅'],'천재교육':['천재교육'],'비상교육':['비상교육'],'동아출판':['동아출판'],'이투스':['이투스','워드마스터'],
+ '해커스':['해커스'],'EBS':['EBS'],'키출판사':['키출판사'],'윤선생':['윤선생'],'튼튼영어':['튼튼영어'],
+ 'OUP코스북':['옥스포드','옥스퍼드','Oxford Discover','Blue Dot','OUP'],
+ '롱맨':['롱맨','Longman'],'케임브리지':['케임브리지','캠브리지','Cambridge'],
+ 'Acorn':['Acorn'],'Step Into Reading':['Step Into Reading'],'ORT(Oxford Reading Tree)':['Oxford Reading Tree','ORT'],
+ 'National Geographic Kids':['National Geographic Kids','Nat Geo Kids'],'Scholastic':['Scholastic'],
+ 'Fly Guy':['Fly Guy'],'Frog and Toad':['Frog and Toad'],'Nate the Great':['Nate the Great'],
+ 'Henry and Mudge':['Henry and Mudge'],'Magic Tree House':['Magic Tree House'],'I Can Read':['I Can Read'],
+ 'Usborne':['Usborne'],'Ladybird':['Ladybird'],'Wonders':['Wonders']
+};
+const OWNRE=/neungyule|nebuildandgrow|nebooks|netutor|netimes|nelab|nekids/i;
+/* 답변에 흔히 섞이는 이미지 CDN·플랫폼 자체 도메인 — 출처로 오인식되지 않도록 제외 */
+const BLOCK_DOMAINS=['images.openai.com','oaiusercontent.com','chatgpt.com','chat.openai.com','cdn.openai.com',
+ 'googleusercontent.com','gstatic.com','ggpht.com','perplexity.ai','claude.ai','anthropic.com','gemini.google.com'];
+
+const SITES=[{n:'기업사이트',u:'https://www.neungyule.com/robots.txt'},{n:'NE Build & Grow',u:'https://www.nebuildandgrow.co.kr/robots.txt'},
+ {n:'NE Books',u:'https://www.nebooks.co.kr/robots.txt'},{n:'NE Tutor',u:'https://www.netutor.co.kr/robots.txt'},
+ {n:'NE Times',u:'https://www.netimes.co.kr/robots.txt'},{n:'주니어랩',u:'https://www.nelab.co.kr/robots.txt'}];
+const STRUCT=[{k:'schema',n:'상품 상세에 Product/Book 구조화 데이터 적용',own:'IT운영팀',d:'2주',cost:'개발공수'},
+ {k:'edition',n:'개정연도·대상학년이 상품 페이지 본문 텍스트에 명시',own:'디지털마케팅팀',d:'2주',cost:'0'},
+ {k:'level',n:'ELT 레벨차트가 정적 HTML로 크롤링 가능',own:'IT운영팀',d:'3주',cost:'개발공수'},
+ {k:'meta',n:'meta-keywords에서 경쟁사명 제거',own:'IT운영팀',d:'1일',cost:'0'},
+ {k:'cafe',n:'네이버 카페 buildngrow 글이 비로그인 열람 가능',own:'디지털마케팅팀',d:'1주',cost:'0'},
+ {k:'wiki',n:'나무위키·위키백과 「NE능률」 항목이 최신 상태',own:'디지털마케팅팀',d:'1주',cost:'0'}];
+
+let S={obs:[],robots:{},struct:{},track:null,engToggle:{claude:false,pplx:false,gem:false}};
+let mem={},qi=0,abortF=false,QUEUE=[];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+const pct=v=>Math.round(v*100);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function ls_get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
+function ls_set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+let sT=null;function save(){clearTimeout(sT);sT=setTimeout(()=>ls_set('ne_geo_state',S),400)}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2000)}
+
+/* ═══════════ 로컬 채점기 (서버 실패해도 절대 멈추지 않음) ═══════════ */
+function localScore(A){
+ const low=A.toLowerCase();
+ let mask=low, ours=[], firstIdx=Infinity;
+ for(const b of OURS){
+  const i=mask.indexOf(b.toLowerCase());
+  if(i>=0){ ours.push(b); if(i<firstIdx)firstIdx=i;
+   mask=mask.slice(0,i)+'\u0000'.repeat(b.length)+mask.slice(i+b.length); }
+ }
+ const cmap={};
+ for(const [g,als] of Object.entries(COMP_G)){
+  for(const a of als){const i=low.indexOf(a.toLowerCase());
+   if(i>=0&&(cmap[g]===undefined||i<cmap[g]))cmap[g]=i}
+ }
+ let rank=null;
+ if(ours.length){
+  const groups=[{k:'__OURS__',i:firstIdx},...Object.entries(cmap).map(([g,i])=>({k:g,i}))].sort((a,b)=>a.i-b.i);
+  rank=groups.findIndex(g=>g.k==='__OURS__')+1;
+ }
+ const company=/NE\s*능률|엔이\s*능률|능률\s*교육|NE\s*Build\s*&?\s*Grow|빌드앤그로우|㈜?\s*능률/i.test(A);
+ const urls=A.match(/https?:\/\/[^\s)\]"'<>]+/g)||[];
+ let doms=[...new Set(urls.map(u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return null}}).filter(Boolean))];
+ doms=doms.filter(d=>!BLOCK_DOMAINS.some(b=>d.includes(b)));
+ const named=[];
+ ['neungyule.com','nebuildandgrow.co.kr','nebooks.co.kr','netutor.co.kr','netimes.co.kr','nelab.co.kr',
+  'blog.naver.com','cafe.naver.com','youtube.com','coupang.com','yes24.com','kyobobook','aladin'].forEach(d=>{
+  if(low.includes(d)&&!doms.some(x=>x.includes(d)))named.push(d)});
+ const sources=[...doms,...named];
+ return {mentioned:ours.length>0, rank:ours.length?rank:null, titles:[...new Set(ours)].slice(0,8),
+  companyNameAttached:company, selfCited:sources.some(d=>OWNRE.test(d))||OWNRE.test(A),
+  sources, accuracyIssue:false, accuracyNote:'', evidence:'',
+  competitors:Object.keys(cmap), _mode:'local'};
+}
+
+/* ═══════════ METRICS ═══════════ */
+function curP(){const cats=TRACKS[S.track].cats;return P.filter(p=>cats.includes(p.c))}
+function M(){const o=S.obs,n=o.length,h=o.filter(x=>x.mentioned);
+ const rk=h.map(x=>x.rank).filter(x=>typeof x==='number'&&x>0);
+ return{n,hitN:h.length,hit:n?h.length/n:0,rank:rk.length?rk.reduce((a,b)=>a+b,0)/rk.length:null,
+  comp:h.length?h.filter(x=>x.companyNameAttached).length/h.length:0,
+  cite:n?o.filter(x=>x.selfCited).length/n:0,err:o.filter(x=>x.accuracyIssue).length,
+  errR:n?o.filter(x=>x.accuracyIssue).length/n:0}}
+function byCat(){const r={};for(const c in CAT){const ids=curP().filter(p=>p.c===c).map(p=>p.id);
+ const o=S.obs.filter(x=>ids.includes(x.pid));r[c]={n:o.length,h:o.filter(x=>x.mentioned).length}}return r}
+function byEng(){const r={};ALL().forEach(e=>{const o=S.obs.filter(x=>x.eng===e.id);r[e.id]={n:o.length,h:o.filter(x=>x.mentioned).length}});return r}
+function tally(f){const m={};S.obs.forEach(x=>(x[f]||[]).forEach(v=>{const k=String(v).trim();if(k)m[k]=(m[k]||0)+1}));
+ return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+const blocked=()=>Object.entries(S.robots).filter(([,v])=>v==='block').map(([u])=>u);
+const noRobots=()=>Object.entries(S.robots).filter(([,v])=>v==='none').map(([u])=>u);
+
+function verdict(){const m=M(),b=blocked(),bc=byCat();
+ const eR=bc.A.n?bc.A.h/bc.A.n:null,mR=(bc.B.n+bc.C.n)?(bc.B.h+bc.C.h)/(bc.B.n+bc.C.n):null;
+ if(b.length)return{k:'BLOCK',h:'AI 크롤러가 차단되어 있습니다. 콘텐츠 개선보다 해제가 먼저입니다.',
+  l:`자사 사이트 ${b.length}곳에서 AI 검색 크롤러 접근이 차단된 상태로 확인됐습니다. 이 상태에서는 콘텐츠를 아무리 개선해도 AI 답변에 반영되지 않습니다.`,
+  a:'robots.txt에서 GPTBot·ClaudeBot·PerplexityBot·Google-Extended 허용 (IT운영팀 / 1일 / 비용 없음)'};
+ if(m.n&&(m.errR>=.2||m.err>=3))return{k:'ACCURACY',h:'AI가 우리 교재 정보를 틀리게 안내하고 있습니다.',
+  l:`관측 ${m.n}건 중 ${m.err}건(${pct(m.errR)}%)에서 개정연도·가격·구성 등 사실 정보 오류가 확인됐습니다.`,
+  a:'상품 상세 페이지에 개정연도·대상학년·구성을 본문 텍스트로 명시 (디지털마케팅팀 / 2주 / 비용 없음)'};
+ if(m.n&&m.hit<.35)return{k:'ABSENT',h:'AI가 만든 추천 목록에 우리 이름이 거의 없습니다.',
+  l:`소비자 질문 ${m.n}건 중 자사 교재가 언급된 경우는 ${m.hitN}건(${pct(m.hit)}%)에 그쳤습니다.`,
+  a:'상황형 콘텐츠 확충 — 학부모 질문 언어로 된 교재 추천 페이지 제작 (디지털마케팅팀 / 6주 / 비용 없음)'};
+ if(m.n&&(m.cite<.15||m.comp<.4))return{k:'UNATTRIBUTED',h:'노출은 되지만, 우리 것으로 쌓이지 않고 있습니다.',
+  l:`노출률은 ${pct(m.hit)}%로 확보되어 있으나, AI가 자사 공식 사이트를 근거로 인용한 비율은 ${pct(m.cite)}%에 불과했습니다.`,
+  a:'제품명 단독 노출 제거 — 온드·언드 전 채널에서 「NE능률 리딩튜터」 형태로 회사명 병기 (디지털마케팅팀 / 4주 / 기존 예산 내)'};
+ if(!m.n)return{k:'UNATTRIBUTED',h:'측정 데이터가 없습니다.',l:'Step 2에서 실측을 먼저 수행하십시오.',a:'실측 진행'};
+ return{k:'HEALTHY',h:'AI 노출은 확보되어 있습니다. 영역 격차만 남았습니다.',
+  l:`전체 노출률 ${pct(m.hit)}%, 자사 인용률 ${pct(m.cite)}%로 기본 체력은 확보된 상태입니다.${(eR!==null&&mR!==null&&mR-eR>.2)?` 다만 초등 ELT 노출률(${pct(eR)}%)이 중고등(${pct(mR)}%) 대비 현저히 낮습니다.`:''}`,
+  a:'월 1회 정기 측정으로 추이 관리 (디지털마케팅팀 / 상시)'}}
+function gaps(){const m=M(),bc=byCat(),o=[];
+ const eR=bc.A.n?bc.A.h/bc.A.n:null,mR=(bc.B.n+bc.C.n)?(bc.B.h+bc.C.h)/(bc.B.n+bc.C.n):null;
+ if(eR!==null&&mR!==null&&mR-eR>=.2)o.push({g:'카테고리 갭',f:`초등 ELT ${pct(eR)}% vs 중고등 ${pct(mR)}%`,
+  d:'초등 영어 교재 카테고리의 대표 브랜드로 인식되지 못하고 있습니다.',x:'초등 학부모 언어 기반 카테고리 페이지 신설'});
+ if(m.rank&&m.rank>3)o.push({g:'상황 갭',f:`평균 등장 순위 ${m.rank.toFixed(1)}번째`,
+  d:'추천은 되지만 후순위입니다.',x:'상황별 진입점 콘텐츠 40종 제작'});
+ if(m.err>0)o.push({g:'속성 갭',f:`정보 오류 ${m.err}건`,
+  d:'개정연도·가격·레벨 등의 축이 사이트 본문에 없어 AI가 추정하고 있습니다.',x:'상품 상세 본문 스펙 명시 + 구조화 데이터'});
+ if(m.n&&m.cite<.2)o.push({g:'관계 갭',f:`자사 출처 인용률 ${pct(m.cite)}%`,
+  d:'적합 근거를 자사 채널이 제공하지 못해 AI가 외부 블로그·카페에 의존하고 있습니다.',x:'레벨차트·커리큘럼 정적 페이지화'});
+ const cp=tally('competitors');
+ if(cp.length&&m.n&&m.hit<.6)o.push({g:'센티먼트 갭',f:`동시 노출 상위: ${cp.slice(0,3).map(x=>x[0]).join(', ')}`,
+  d:'같은 질문에서 경쟁 브랜드(국내 출판사 또는 해외 리더스)가 우리보다 먼저 호출되고 있습니다.',x:'인플루언서·리뷰 메시지를 자사 핵심 주장과 정렬'});
+ return o}
+function actions(){const a=[],b=blocked(),m=M();
+ if(b.length)a.push({p:'즉시',t:'robots.txt에서 AI 크롤러 4종 허용',o:'IT운영팀',d:'1일',c:'없음'});
+ if(noRobots().length)a.push({p:'즉시',t:'robots.txt 미보유 사이트에 정책 파일 생성',o:'IT운영팀',d:'3일',c:'없음'});
+ STRUCT.forEach(s=>{if(S.struct[s.k]==='no')a.push({p:'1개월',t:s.n+' 조치',o:s.own,d:s.d,c:s.cost==='0'?'없음':s.cost})});
+ if(m.n&&m.hit<.5)a.push({p:'1분기',t:'학부모 상황 언어 기반 교재 추천 콘텐츠 40종 제작',o:'디지털마케팅팀',d:'6주',c:'없음(내부 제작)'});
+ if(m.n&&m.comp<.5)a.push({p:'1분기',t:'전 채널 제품명에 「NE능률」·「NE Build & Grow」 병기 규칙 적용',o:'디지털마케팅팀 · 프로덕트마케팅본부',d:'4주',c:'없음'});
+ a.push({p:'상시',t:'월 1회 동일 조건 재측정 및 추이 관리',o:'디지털마케팅팀',d:'월 1회',c:'없음'});
+ return a}
+
+/* ═══════════ WORKBENCH ═══════════ */
+function buildQueue(){
+ ENG=[...ENG_MIN]; if(S.engToggle.claude)ENG.push(ENG_CLAUDE); if(S.engToggle.pplx)ENG.push(ENG_PPLX); if(S.engToggle.gem)ENG.push(ENG_GEM);
+ QUEUE=[];curP().forEach(p=>ENG.forEach(e=>QUEUE.push({pid:p.id,eng:e.id})));
+}
+const doneKey=t=>S.obs.some(o=>o.pid===t.pid&&o.eng===t.eng);
+function firstOpen(){for(let i=0;i<QUEUE.length;i++){if(!doneKey(QUEUE[i])&&!QUEUE[i].skip)return i}return -1}
+function updateFixHints(){
+ const mOn=$('#fM').value==='1';
+ $('#fR').disabled=!mOn; if(!mOn)$('#fR').value='';
+ $('#fR').placeholder=mOn?'예: 2':'미노출 — 순위 없음';
+ $('#fT').placeholder=mOn?'쉼표로 구분':'해당 없음 (실제로 자사 브랜드가 언급되지 않았습니다)';
+}
+function wb(){
+ if(!QUEUE.length){$('#wbText').textContent='선택한 트랙에 문항이 없습니다.';return}
+ const t=QUEUE[qi],d=QUEUE.filter(doneKey).length;
+ $('#wbCount').innerHTML=`${d}<s>/${QUEUE.length}</s>`;
+ if(!t){$('#wbText').textContent='모든 항목을 마쳤습니다. Step 3으로 이동하십시오.';$('#wbPid').textContent='—';$('#wbEng').textContent='—';}
+ else{
+  const p=P.find(x=>x.id===t.pid),e=ENG.find(x=>x.id===t.eng);
+  $('#wbPid').textContent=`${p.id} · ${CAT[p.c].n} (${CAT[p.c].b})`;
+  $('#wbText').textContent=p.t;$('#wbEng').textContent=e.n;$('#wbHint').textContent=e.h;
+  $('#wbAns').value='';$('#wbState').textContent=doneKey(t)?'이미 측정됨 · 저장하면 덮어씁니다':'';
+  $('#wbFix').classList.add('hide');
+ }
+ $('#qgrid').innerHTML=QUEUE.map((q,i)=>{
+  const o=S.obs.find(x=>x.pid===q.pid&&x.eng===q.eng);
+  const c=i===qi?'d-cur':q.skip?'d-skip':o?(o.mentioned?'d-done':'d-miss'):'';
+  return `<span class="qdot ${c}" data-i="${i}" title="${q.pid} / ${(ENG.find(x=>x.id===q.eng)||{}).n}"></span>`}).join('');
+ tick();
+}
+function fillFix(o){
+ $('#fM').value=o.mentioned?'1':'0';$('#fR').value=o.rank??'';
+ $('#fC').value=o.companyNameAttached?'1':'0';$('#fS').value=o.selfCited?'1':'0';
+ $('#fA').value=o.accuracyIssue?'1':'0';$('#fT').value=(o.titles||[]).join(', ');
+ $('#fP').value=(o.competitors||[]).join(', ');$('#fU').value=(o.sources||[]).join(', ');
+ $('#fN').value=o.accuracyNote||'';
+ updateFixHints();
+ $('#fixBadge').innerHTML='<span class="badge b-loc">규칙 기반 자동 판정</span> <span class="muted xs">정보 오류만 직접 확인하십시오</span>';
+ $('#wbFix').classList.remove('hide');
+}
+function doScore(){
+ const t=QUEUE[qi];if(!t){toast('남은 항목이 없습니다');return}
+ const a=$('#wbAns').value.trim();
+ if(!a){toast('답변을 먼저 붙여넣으십시오');return}
+ const j=localScore(a);
+ const o={mentioned:j.mentioned,rank:j.rank,titles:j.titles,companyNameAttached:j.companyNameAttached,
+  selfCited:j.selfCited,sources:j.sources,accuracyIssue:j.accuracyIssue,accuracyNote:j.accuracyNote,
+  evidence:j.evidence,competitors:j.competitors,mode:'local',pid:t.pid,eng:t.eng,rep:1,raw:a.slice(0,3000),at:Date.now()};
+ S.obs=S.obs.filter(x=>!(x.pid===t.pid&&x.eng===t.eng));
+ S.obs.push(o);save();
+ $('#wbState').innerHTML=(o.mentioned
+   ?`<b style="color:var(--go)">노출됨${o.rank?' · '+o.rank+'위':''}</b>`
+   :`<b style="color:var(--ne)">미노출</b>`)+' · 아래에서 확인 후 저장하십시오';
+ fillFix(o);
+}
+
+/* ═══════════ RENDER ═══════════ */
+function renderChecks(){
+ $('#robots').innerHTML=SITES.map(s=>{const v=S.robots[s.u]||'';
+  return `<div class="chk-r"><span><a href="${s.u}" target="_blank" rel="noopener">${escHtml(s.n)}</a><br>
+   <span class="muted xs">${escHtml(s.u.replace('https://',''))}</span></span><span>
+   <button class="seg s-g" data-rk="${s.u}" data-rv="open" aria-pressed="${v==='open'}">허용</button>
+   <button class="seg s-b" data-rk="${s.u}" data-rv="block" aria-pressed="${v==='block'}">차단</button>
+   <button class="seg" data-rk="${s.u}" data-rv="none" aria-pressed="${v==='none'}">파일없음</button></span></div>`}).join('');
+ $('#struct').innerHTML=STRUCT.map(s=>{const v=S.struct[s.k]||'';
+  return `<div class="chk-r"><span>${escHtml(s.n)}<br><span class="muted xs">${escHtml(s.own)} · ${escHtml(s.d)}</span></span><span>
+   <button class="seg s-g" data-sk="${s.k}" data-sv="yes" aria-pressed="${v==='yes'}">충족</button>
+   <button class="seg s-b" data-sk="${s.k}" data-sv="no" aria-pressed="${v==='no'}">미충족</button></span></div>`}).join('');
+}
+function renderDiag(){const m=M(),v=verdict();
+ $('#verdictBox').innerHTML=`<div class="verdict v-${v.k}"><div class="verdict-h">
+  <span class="eb">판정 · ${v.k}</span><h3>${escHtml(v.h)}</h3></div>
+  <div class="verdict-b"><p class="sm" style="margin-bottom:12px">${escHtml(v.l)}</p>
+  <div class="hint h-ne"><b>최우선 조치</b> — ${escHtml(v.a)}</div></div></div>`;
+ const cl=(x,g,b)=>x>=g?'good':x<=b?'bad':'';
+ $('#roBox').innerHTML=[['노출률',m.n?pct(m.hit)+'<u>%</u>':'—',`${m.hitN}/${m.n} 관측`,m.n?cl(m.hit,.6,.35):''],
+  ['평균 순위',m.rank?m.rank.toFixed(1):'—','낮을수록 상위',''],
+  ['회사명 동반',m.hitN?pct(m.comp)+'<u>%</u>':'—','브랜드 귀속도',m.hitN?cl(m.comp,.5,.3):''],
+  ['자사 인용',m.n?pct(m.cite)+'<u>%</u>':'—','AI가 우리 사이트를 근거로',m.n?cl(m.cite,.3,.15):''],
+  ['정보 오류',m.n?m.err+'<u>건</u>':'—',m.n?pct(m.errR)+'% · 매출 직결':'',m.err?'warn':'']]
+  .map(([l,x,s,c])=>`<div><span class="l">${l}</span><div class="v ${c}">${x}</div><div class="s">${s}</div></div>`).join('');
+ const bc=byCat();
+ $('#catT').innerHTML=`<thead><tr><th>영역</th><th>가설</th><th class="n">노출</th><th style="width:80px"></th></tr></thead><tbody>`+
+  Object.entries(CAT).map(([c,i])=>{const d=bc[c],r=d.n?d.h/d.n:0;
+   return `<tr><td><b>${c}</b> ${escHtml(i.n)}<br><span class="muted xs">${escHtml(i.b)}</span></td><td class="muted xs">${escHtml(i.h)}</td>
+   <td class="n">${d.n?pct(r)+'%':'—'}<br><span class="muted xs">${d.n?d.h+'/'+d.n:''}</span></td>
+   <td><div class="bar"><i class="${r>=.5?'b-go':'b-ne'}" style="width:${d.n?pct(r):0}%"></i></div></td></tr>`}).join('')+'</tbody>';
+ const be=byEng();
+ $('#engT').innerHTML=`<thead><tr><th>엔진</th><th class="n">노출</th><th style="width:80px"></th></tr></thead><tbody>`+
+  ALL().map(e=>{const d=be[e.id],r=d.n?d.h/d.n:0;
+   return `<tr><td>${escHtml(e.n)}</td><td class="n">${d.n?pct(r)+'%':'미측정'}<br><span class="muted xs">${d.n?d.h+'/'+d.n:''}</span></td>
+   <td><div class="bar"><i class="${r>=.5?'b-go':'b-ne'}" style="width:${d.n?pct(r):0}%"></i></div></td></tr>`}).join('')+'</tbody>';
+ const g=gaps();
+ $('#gapT').innerHTML=g.length?`<thead><tr><th>유형</th><th>관측 근거</th><th>처방</th></tr></thead><tbody>`+
+  g.map(x=>`<tr><td><b>${escHtml(x.g)}</b></td><td class="muted">${escHtml(x.f)}<br><span class="xs">${escHtml(x.d)}</span></td><td>${escHtml(x.x)}</td></tr>`).join('')+'</tbody>'
+  :`<tbody><tr><td class="muted sm">유의미한 갭이 확인되지 않았거나 데이터가 부족합니다.</td></tr></tbody>`}
+
+/* ═══════════ REPORT ═══════════ */
+function report(){
+ const m=M(),v=verdict(),bc=byCat(),be=byEng(),g=gaps(),ac=actions();
+ const errs=S.obs.filter(x=>x.accuracyIssue),srcs=tally('sources'),own=srcs.filter(([k])=>OWNRE.test(k)),cps=tally('competitors').slice(0,6);
+ const b=blocked(),nr=noRobots();
+ const eR=bc.A.n?bc.A.h/bc.A.n:null,mR=(bc.B.n+bc.C.n)?(bc.B.h+bc.C.h)/(bc.B.n+bc.C.n):null;
+ const D=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+ let H='';
+ H+=`<div class="r-kicker">디지털서비스본부 · 디지털마케팅팀</div><h1>AI 검색 노출(GEO) 현황 진단</h1>`;
+ H+=`<div class="r-meta">${D} · 측정 ${m.n}건</div>`;
+ H+=`<h2>1. 결론</h2><p class="lead">${escHtml(v.h)}</p><p>${escHtml(v.l)}</p>`;
+ H+=`<div class="callout${v.k==='ACCURACY'?' c-w':v.k==='HEALTHY'?' c-n':''}"><p><b>최우선 조치</b> — ${escHtml(v.a)}</p></div>`;
+ H+=`<div class="kpi">
+  <div><s>노출률</s><b class="${m.hit>=.6?'good':m.hit<=.35?'bad':''}">${m.n?pct(m.hit)+'%':'—'}</b><em>${m.hitN}/${m.n} 관측</em></div>
+  <div><s>자사 인용률</s><b class="${m.cite>=.3?'good':m.cite<=.15?'bad':''}">${m.n?pct(m.cite)+'%':'—'}</b><em>AI가 우리 사이트를 근거로 삼은 비율</em></div>
+  <div><s>회사명 동반</s><b class="${m.comp>=.5?'good':m.comp<=.3?'bad':''}">${m.hitN?pct(m.comp)+'%':'—'}</b><em>브랜드 자산 귀속도</em></div>
+  <div><s>정보 오류</s><b class="${m.err?'warn':''}">${m.n?m.err+'건':'—'}</b><em>${m.n?pct(m.errR)+'% · 매출 직결 리스크':''}</em></div></div>`;
+ H+=`<h2>2. 측정 방법</h2><ul>
+ <li>담당 트랙: <b>${escHtml(TRACKS[S.track].name)}</b> — ${escHtml(TRACKS[S.track].desc)}</li>
+ <li>${ENG.map(e=>e.n).join('·')}에 로그아웃 및 시크릿·임시 채팅 상태로 직접 질의하고 답변을 캡처했습니다 (총 ${m.n}건, 전량 수동 캡처).</li>
+ <li>캡처된 답변은 자사·경쟁 브랜드 사전을 기반으로 한 규칙 기반 채점기로 노출 여부·순위·회사명 동반·인용 출처·경쟁사를 자동 판정했으며, 정보 정확성만 담당자가 직접 확인했습니다.</li></ul>
+ <div class="callout c-n"><p>표본 한계 — 총 ${m.n}건 규모의 방향성 진단입니다. 절대 수치보다 <b>영역 간 격차와 월별 추이</b>를 판단 근거로 사용하시기 바랍니다.</p></div>`;
+ H+=`<h2>3. 측정 결과</h2><h3>영역별 노출률</h3>
+ <table><thead><tr><th>영역</th><th>브랜드</th><th class="n">노출률</th><th class="n">관측</th></tr></thead><tbody>`+
+ Object.entries(CAT).filter(([c])=>bc[c].n>0).map(([c,i])=>{const d=bc[c];
+  return `<tr><td>${c}. ${escHtml(i.n)}</td><td>${escHtml(i.b)}</td><td class="n">${d.n?pct(d.h/d.n)+'%':'—'}</td><td class="n">${d.h}/${d.n}</td></tr>`}).join('')+`</tbody></table>`;
+ if(eR!==null&&mR!==null&&mR-eR>=.15)
+  H+=`<div class="callout"><p><b>핵심 격차</b> — 초등 ELT 노출률 ${pct(eR)}%는 중고등 ${pct(mR)}% 대비 ${pct(mR-eR)}%p 낮습니다.</p></div>`;
+ H+=`<h3>엔진별 노출률</h3><table><thead><tr><th>엔진</th><th class="n">노출률</th><th class="n">관측</th></tr></thead><tbody>`+
+ ALL().map(e=>{const d=be[e.id];return `<tr><td>${escHtml(e.n)}</td><td class="n">${d.n?pct(d.h/d.n)+'%':'미측정'}</td><td class="n">${d.n?d.h+'/'+d.n:'—'}</td></tr>`}).join('')+
+ `</tbody></table><p class="muted" style="font-size:12.5px">AI마다 답변이 다르므로 단일 엔진 결과로 판단하면 오독합니다.</p>`;
+ if(srcs.length){H+=`<h3>인용 출처</h3><p>AI가 근거로 삼은 출처 ${srcs.length}종 중 자사 도메인은 ${own.length}종이었습니다.</p>
+ <table><thead><tr><th>출처</th><th class="n">인용</th><th>구분</th></tr></thead><tbody>`+
+ srcs.slice(0,8).map(([k,c])=>`<tr><td>${escHtml(k)}</td><td class="n">${c}회</td><td>${OWNRE.test(k)?'자사':'외부'}</td></tr>`).join('')+`</tbody></table>`}
+ if(cps.length){H+=`<h3>동시 노출 경쟁사</h3><p class="muted" style="font-size:12.5px">국내 출판사와 해외 리더스 시리즈를 함께 표시합니다. 후자는 카테고리 자체를 원서 캐논에 내주고 있다는 신호입니다.</p>
+ <table><thead><tr><th>브랜드</th><th class="n">등장</th></tr></thead><tbody>`+
+ cps.map(([k,c])=>`<tr><td>${escHtml(k)}</td><td class="n">${c}회</td></tr>`).join('')+`</tbody></table>`}
+ if(errs.length){H+=`<h2>4. 정보 오류 (우선 대응)</h2>
+ <p>AI가 우리 교재에 관해 사실과 다른 정보를 안내한 사례입니다. <b>노출률 개선보다 우선순위가 높습니다.</b></p>`;
+ errs.slice(0,6).forEach(x=>{H+=`<p style="margin-bottom:4px"><b>${x.pid} · ${escHtml((ALL().find(e=>e.id===x.eng)||{}).n||x.eng)}</b> — ${escHtml(x.accuracyNote||'내용 미기재')}</p>`;
+  if(x.evidence)H+=`<div class="quote">${escHtml(x.evidence)}</div>`})}
+ const sn=errs.length?5:4;
+ H+=`<h2>${sn}. 원인 진단</h2>`;
+ if(b.length||nr.length){H+=`<h3>기술 요인</h3><ul>`;b.forEach(u=>H+=`<li><b>[차단]</b> ${escHtml(u.replace('https://',''))}</li>`);
+  if(nr.length)H+=`<li>robots.txt 미보유 ${nr.length}건</li>`;H+=`</ul>`}
+ const sNo=STRUCT.filter(s=>S.struct[s.k]==='no');
+ if(sNo.length)H+=`<h3>구조 요인</h3><ul>`+sNo.map(s=>`<li>${escHtml(s.n)} — 미충족</li>`).join('')+`</ul>`;
+ if(g.length)H+=`<h3>콘텐츠 갭</h3><table><thead><tr><th>유형</th><th>관측 근거</th><th>처방</th></tr></thead><tbody>`+
+  g.map(x=>`<tr><td><b>${escHtml(x.g)}</b></td><td>${escHtml(x.f)}<br><span style="color:#565C65">${escHtml(x.d)}</span></td><td>${escHtml(x.x)}</td></tr>`).join('')+`</tbody></table>`;
+ H+=`<h2>${sn+1}. 실행 계획</h2><table><thead><tr><th>시점</th><th>과제</th><th>주체</th><th>기간</th><th>비용</th></tr></thead><tbody>`+
+ ac.map(a=>`<tr><td><b>${escHtml(a.p)}</b></td><td>${escHtml(a.t)}</td><td>${escHtml(a.o)}</td><td>${escHtml(a.d)}</td><td>${escHtml(a.c)}</td></tr>`).join('')+
+ `</tbody></table>`;
+ H+=`<div class="sig">담당 트랙: ${escHtml(TRACKS[S.track].name)} · 본 진단은 도구화되어 반복 측정이 가능합니다.<br>디지털서비스본부 디지털마케팅팀</div>`;
+ $('#sheet').innerHTML=H;
+}
+function sheetText(){const c=$('#sheet').cloneNode(true);
+ c.querySelectorAll('table').forEach(t=>{const rows=[...t.querySelectorAll('tr')].map(r=>[...r.children].map(td=>td.innerText.replace(/\n/g,' ').trim()).join('  |  '));
+  const d=document.createElement('div');d.innerText=rows.join('\n');t.replaceWith(d)});
+ c.querySelectorAll('.kpi div').forEach(d=>{const p=document.createElement('div');p.innerText='· '+d.innerText.replace(/\n/g,' ');d.replaceWith(p)});
+ return c.innerText.replace(/\n{3,}/g,'\n\n').trim()}
+
+/* ═══════════ NAV ═══════════ */
+function pane(n){$$('.step').forEach(s=>s.setAttribute('aria-current',String(+s.dataset.p===n)));
+ [1,2,3,4,5].forEach(i=>$('#p'+i).classList.toggle('hide',i!==n));
+ if(n===2)wb();if(n===3)renderDiag();if(n===4)report();if(n===5)renderArchive();
+ window.scrollTo({top:0,behavior:'smooth'});tick()}
+function tick(){const d=QUEUE.filter(doneKey).length,left=Math.max(0,QUEUE.length-d);
+ $('#clock').innerHTML=`진행 <b>${d}</b>/${QUEUE.length} · 잔여 <b>${left?Math.round(left*.7)+'분':'완료'}</b>`;
+ $$('.step').forEach(s=>{const p=+s.dataset.p;
+  s.classList.toggle('done',p===1?Object.keys(S.robots).length>=SITES.length:p===2?(QUEUE.length>0&&d>=QUEUE.length):p===3?d>0:false)});
+ $('#nextUp').textContent = blocked().length? 'robots.txt 차단 발견 — 보고서에 최우선 조치로 자동 반영됩니다.'
+  : d<QUEUE.length? `실측 ${left}건 남았습니다.` : '측정 완료. Step 4에서 보고서를 출력하십시오.'}
+
+/* ═══════════ TRACK (로그인 없음 — 트랙 선택이 최초 화면) ═══════════ */
+function renderTrackGrid(){
+ $('#trackGrid').innerHTML=Object.entries(TRACKS).map(([k,t])=>
+  `<button class="trackcard" data-tk="${k}"><b>${escHtml(t.name)}</b><span>${escHtml(t.desc)}</span>
+   <u>${t.cats.reduce((n,c)=>n+P.filter(p=>p.c===c).length,0)}문항</u></button>`).join('');
+}
+function enterApp(){
+ $('#trackGate').classList.add('hide');
+ $('#app').classList.remove('hide');
+ $('#trackLabel').textContent=TRACKS[S.track].name;
+ buildQueue();renderChecks();const n=firstOpen();qi=n>=0?n:0;wb();pane(1);
+}
+
+/* ═══════════ 보고서 보관함 (기록이 남도록 저장) ═══════════ */
+function archiveList(){return ls_get('ne_geo_reports')||[]}
+function saveReportToArchive(){
+ const html=$('#sheet').innerHTML;
+ if(!html||html.length<20){toast('먼저 보고서를 생성하십시오');return}
+ const m=M(),v=verdict();
+ const list=archiveList();
+ list.unshift({
+  id:'r_'+Date.now(),
+  at:Date.now(),
+  track:S.track,
+  trackName:TRACKS[S.track]?TRACKS[S.track].name:S.track,
+  verdict:v.k,
+  n:m.n, hit:m.hit, err:m.err,
+  html
+ });
+ ls_set('ne_geo_reports',list.slice(0,50)); // 최근 50건까지 보관
+ $('#saveMsg').textContent='보관함에 저장했습니다 · '+new Date().toLocaleString('ko-KR');
+ toast('보고서를 기록에 남겼습니다');
+}
+function renderArchive(){
+ const list=archiveList();
+ $('#archiveCount').textContent=`저장된 보고서 ${list.length}건`;
+ if(!list.length){$('#archiveList').innerHTML='<div class="arc-empty">아직 저장된 보고서가 없습니다. Step 4에서 「보고서 저장」을 눌러보십시오.</div>';return}
+ $('#archiveList').innerHTML=list.map(r=>{
+  const d=new Date(r.at).toLocaleString('ko-KR');
+  return `<div class="arc-item">
+   <div class="meta"><b>${escHtml(r.trackName||r.track)} · ${escHtml(r.verdict)}</b>
+   <span>${d} · 관측 ${r.n}건 · 노출률 ${pct(r.hit||0)}%${r.err?' · 오류 '+r.err+'건':''}</span></div>
+   <div class="row">
+    <button class="btn btn-sm" data-view="${r.id}">보기</button>
+    <button class="btn btn-sm" data-dl="${r.id}">HTML 다운로드</button>
+    <button class="btn btn-sm" data-del="${r.id}">삭제</button>
+   </div></div>`;
+ }).join('');
+}
+function viewArchived(id){
+ const r=archiveList().find(x=>x.id===id); if(!r)return;
+ $('#sheet').innerHTML=r.html;
+ pane(4);
+ toast('보관함에서 불러왔습니다 (현재 데이터로 다시 생성하려면 「다시 생성」)');
+}
+function downloadArchived(id){
+ const r=archiveList().find(x=>x.id===id); if(!r)return;
+ const css=document.querySelector('style').textContent;
+ const full=`<!doctype html><html><head><meta charset="utf-8"><title>NE GEO 보고서</title><style>${css}</style></head><body><div class="sheet-wrap"><article class="sheet">${r.html}</article></div></body></html>`;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([full],{type:'text/html'}));
+ a.download='NE_GEO_보고서_'+(r.trackName||r.track)+'_'+new Date(r.at).toISOString().slice(0,10)+'.html';a.click();
+}
+function deleteArchived(id){
+ if(!confirm('이 보고서를 삭제하시겠습니까?'))return;
+ ls_set('ne_geo_reports',archiveList().filter(x=>x.id!==id));
+ renderArchive();
+}
+
+/* ═══════════ EVENTS ═══════════ */
+$('#trackGrid').onclick=e=>{const k=e.target.closest('.trackcard')?.dataset.tk;if(!k)return;
+ S.track=k; S.engToggle={claude:$('#engClaude').checked,pplx:$('#engPplx').checked,gem:$('#engGem').checked};
+ S.obs=[];save();enterApp();};
+$('#btnChangeTrack').onclick=()=>{$('#app').classList.add('hide');$('#trackGate').classList.remove('hide');renderTrackGrid()};
+$('#btnSaveReport').onclick=saveReportToArchive;
+$('#archiveList').onclick=e=>{
+ const v=e.target.dataset.view,dl=e.target.dataset.dl,de=e.target.dataset.del;
+ if(v)viewArchived(v); if(dl)downloadArchived(dl); if(de)deleteArchived(de);
+};
+$('#btnExportArchive').onclick=()=>{
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(archiveList(),null,2)],{type:'application/json'}));
+ a.download='NE_GEO_보관함_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+};
+$('#btnImportArchive').onclick=()=>$('#archiveFile').click();
+$('#archiveFile').onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{
+  try{
+   const imported=JSON.parse(rd.result);
+   if(!Array.isArray(imported))throw new Error('형식 오류');
+   const cur=archiveList();
+   const merged=[...imported,...cur].filter((r,i,arr)=>arr.findIndex(x=>x.id===r.id)===i);
+   ls_set('ne_geo_reports',merged.slice(0,200));
+   renderArchive();toast('보관함을 합쳤습니다');
+  }catch(err){toast('가져오기 실패 — JSON 형식을 확인하십시오')}
+ };
+ rd.readAsText(f);
+};
+$$('.step').forEach(b=>b.onclick=()=>pane(+b.dataset.p));
+$('#toStep2').onclick=()=>pane(2);$('#toStep4').onclick=()=>pane(4);
+$('#robots').onclick=e=>{const k=e.target.dataset.rk;if(!k)return;S.robots[k]=e.target.dataset.rv;save();renderChecks();tick()};
+$('#struct').onclick=e=>{const k=e.target.dataset.sk;if(!k)return;S.struct[k]=e.target.dataset.sv;save();renderChecks()};
+$('#wbCopy').onclick=()=>{const t=QUEUE[qi];if(!t)return;navigator.clipboard.writeText(P.find(x=>x.id===t.pid).t).then(()=>toast('복사했습니다'))};
+$('#wbOpen').onclick=()=>{const t=QUEUE[qi];if(!t)return;const p=P.find(x=>x.id===t.pid),e=ENG.find(x=>x.id===t.eng);
+ navigator.clipboard.writeText(p.t).catch(()=>{});window.open(e.u(p.t),'_blank','noopener')};
+$('#wbScore').onclick=()=>doScore();
+$('#wbSkip').onclick=()=>{if(QUEUE[qi])QUEUE[qi].skip=1;const n=firstOpen();qi=n>=0?n:Math.min(qi+1,QUEUE.length);wb()};
+$('#wbPrev').onclick=()=>{qi=Math.max(0,qi-1);wb()};
+$('#qgrid').onclick=e=>{const i=e.target.dataset.i;if(i!==undefined){qi=+i;wb()}};
+$('#wbAns').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doScore()}});
+$('#fRetry').onclick=()=>doScore();
+$('#fM').addEventListener('change',updateFixHints);
+$('#fSave').onclick=()=>{const t=QUEUE[qi];if(!t)return;const sp=v=>v.split(',').map(s=>s.trim()).filter(Boolean);
+ const rk=parseInt($('#fR').value,10);
+ const prev=S.obs.find(o=>o.pid===t.pid&&o.eng===t.eng)||{};
+ S.obs=S.obs.filter(o=>!(o.pid===t.pid&&o.eng===t.eng));
+ S.obs.push({pid:t.pid,eng:t.eng,rep:1,mentioned:$('#fM').value==='1',rank:$('#fM').value==='1'&&!isNaN(rk)?rk:null,
+  titles:sp($('#fT').value),companyNameAttached:$('#fC').value==='1',selfCited:$('#fS').value==='1',
+  sources:sp($('#fU').value),accuracyIssue:$('#fA').value==='1',accuracyNote:$('#fN').value,
+  evidence:prev.evidence||'',competitors:sp($('#fP').value),mode:prev.mode||'manual',raw:prev.raw||'',at:Date.now()});
+ save();toast('저장했습니다');const n=firstOpen();qi=n>=0?n:QUEUE.length;wb()};
+$('#impBtn').onclick=()=>{
+ try{
+  const d=JSON.parse($('#impBox').value);let add=0,skip=0;
+  const push=o=>{const pid=o.pid||o.promptId;let eng=o.eng||o.engine;
+   if(eng==='claude-api')eng='claude';
+   if(!P.some(p=>p.id===pid)){skip++;return}
+   S.obs=S.obs.filter(x=>!(x.pid===pid&&x.eng===eng));
+   S.obs.push({pid,eng,rep:o.rep||1,mentioned:!!o.mentioned,rank:o.mentioned?(o.rank??null):null,
+    titles:o.titles||o.mentionedTitles||[],companyNameAttached:!!o.companyNameAttached,selfCited:!!o.selfCited,
+    sources:o.sources||[],accuracyIssue:!!o.accuracyIssue,accuracyNote:o.accuracyNote||'',
+    evidence:o.evidence||'',competitors:o.competitors||[],mode:o.mode||'imported',at:o.at||Date.now()});add++};
+  if(d.obs)d.obs.forEach(push);
+  if(d.runs)Object.values(d.runs).forEach(r=>(r.obs||[]).forEach(push));
+  if(d.robots)Object.assign(S.robots,d.robots);
+  if(d.struct)Object.assign(S.struct,d.struct);
+  save();renderChecks();buildQueue();wb();
+  $('#impMsg').textContent=`${add}건 가져왔습니다${skip?` · 대상 외 ${skip}건 제외`:''}`;
+ }catch(e){$('#impMsg').textContent='JSON 형식이 올바르지 않습니다'}};
+$('#btnRe').onclick=report;$('#btnPrint').onclick=()=>window.print();
+$('#btnTxt').onclick=()=>navigator.clipboard.writeText(sheetText()).then(()=>toast('텍스트를 복사했습니다'));
+$('#btnHtml').onclick=async()=>{const h=$('#sheet').outerHTML,css=document.querySelector('style').textContent;
+ const full=`<div style="font-family:-apple-system,'Malgun Gothic',sans-serif"><style>${css}</style>${h}</div>`;
+ try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([full],{type:'text/html'}),
+  'text/plain':new Blob([sheetText()],{type:'text/plain'})})]);toast('HTML을 복사했습니다')}
+ catch(e){await navigator.clipboard.writeText(full);toast('HTML 소스를 복사했습니다')}};
+$('#btnCsv').onclick=()=>{
+ const head=['프롬프트','영역','질문','엔진','노출','순위','회사명동반','자사인용','정보오류','오류내용','언급교재','경쟁사','출처','채점방식'];
+ const rows=S.obs.map(o=>{const p=P.find(x=>x.id===o.pid)||{};
+  return [o.pid,p.c||'',p.t||'',(ALL().find(e=>e.id===o.eng)||{}).n||o.eng,o.mentioned?'Y':'N',o.rank??'',
+   o.companyNameAttached?'Y':'N',o.selfCited?'Y':'N',o.accuracyIssue?'Y':'N',o.accuracyNote||'',
+   (o.titles||[]).join(' / '),(o.competitors||[]).join(' / '),(o.sources||[]).join(' / '),o.mode||'']});
+ const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+ a.download='NE_GEO_'+S.track+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click()};
+$('#btnExport').onclick=()=>{const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+ a.download='NE_GEO_백업_'+S.track+'_'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('백업을 내려받았습니다')};
+
+/* ═══════════ BOOT (로그인 없음) ═══════════ */
+(function(){
+ const saved=ls_get('ne_geo_state');
+ if(saved&&saved.track&&TRACKS[saved.track]){
+  S=saved;S.robots=S.robots||{};S.struct=S.struct||{};S.engToggle=S.engToggle||{claude:false,pplx:false,gem:false};
+  enterApp();
+ }else{
+  renderTrackGrid();
+ }
+})();
+</script>
